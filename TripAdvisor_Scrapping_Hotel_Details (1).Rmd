@@ -1,0 +1,336 @@
+---
+title: "Trip advisor scrapping for DC class"
+output: html_notebook
+---
+
+This is a data collection assignment for CBA.
+
+Submitted By:
+
+Start Date: 17MAR2017
+
+---
+
+Assignment: The motive is to scrap tripadvisor.in website for any third tire indian city and obtain the following information:
+- Name of the hotel
+- URL of the hotel
+- Address
+- Price and saving
+- Number of review and average rating
+- Facilities provided by the hotel
+
+---
+
+Part 0: Installing the required packages
+
+```{r}
+suppressPackageStartupMessages({
+  if (!require(rvest)) {install.packages("rvest")}; library(rvest)
+  if (!require(stringr)) {install.packages("stringr")}; library(stringr)
+  if (!require(dplyr)) {install.packages("dplyr")}; library(dplyr)
+  if (!require(magrittr)) {install.packages("magrittr")}; library(magrittr)
+}
+)
+```
+
+
+Part 1: Getting the hotel name and URL from the page.
+
+I am providing the input of the URL from Trip Advisor with the list of hotels for the city.
+For this example, I am taking Vellore in Tamil Nadu to obtain the information.
+
+```{r}
+#saving the main URL of TA to this variable. This is essential because, when scrapping URL, the home URL of the page is not obtained
+ta <- "https://www.tripadvisor.in"
+
+#Appending the searched URL with the mail URL
+ta.url <- paste(ta, "/Hotels-g1152780-Vellore_Vellore_District_Tamil_Nadu-Hotels.html", sep = "")
+
+#Reading the page source of the URL
+ta.url.content <- read_html(ta.url)
+
+#reading the hotel name
+hotel.name <- ta.url.content %>% html_nodes(".prominent") %>% html_text()
+
+#Reading the URL of the hotel
+hotel.url <- ta.url.content %>% html_nodes(".prominent") %>% html_attr("href")
+
+#appending the URL of the hotel with the trip advisor home URL
+hotel.url <- paste(ta, hotel.url, sep = "")
+hotel.url
+
+#creating a dataframe with all the available details
+hotel.df <- data.frame(Name = hotel.name, Link = hotel.url)
+hotel.df
+```
+
+Now I am going to try to extract all the details from just one Hotel's URL and then loop it in from the hotel.url created.
+
+Part 2: Getting the information needed
+
+---
+
+Variable 1 = Hotel name from inside the page
+
+```{r}
+link <- "https://www.tripadvisor.in/Hotel_Review-g1162528-d1446668-Reviews-Monal_Resort-Rudra_Prayag_Rudraprayag_District_Uttarakhand.html"
+one.hotel <- read_html(link)
+
+hotel.name <- one.hotel %>% html_nodes("#HEADING") %>% html_text()
+hotel.name
+```
+
+Variable 2 = Hotel address
+
+```{r}
+address <- one.hotel %>% html_nodes(".is-hidden-mobile.blEntry.address") %>% html_nodes(".detail") %>%  html_text() 
+address
+```
+
+Variable 3 = Price of the hotel
+
+```{r}
+price <- one.hotel %>% html_nodes(".price") %>% html_text()
+price
+if (length(price) > 0) {
+  price1 <- strsplit(price, "\u20b9")[[1]]
+  typeof(price1)
+}
+price1
+```
+
+Now inside price there are various pries. Trying to get the actual price that shows for booking.
+This is not easy to get, so I use four different methods from CSS selector's nodes to find if the price is contained in this element.
+
+```{r}
+#METHOD 1 FOR CHCKING PRICE
+price.given <- one.hotel %>% html_nodes(".hasStrikeThrough .price") %>% html_text()
+price.given1 <- strsplit(price.given, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+
+#METHOD 2 FOR CHECKING PRICE
+if (length(price.given1) == 0) {
+  price.given <- one.hotel %>% html_nodes(".hasStrikeThrough") %>% html_text()
+price.given1 <- strsplit(price.given, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+}
+
+#METHOD 3 FOR CHECKING PRICE
+if (length(price.given1) == 0) {
+  price.given <- one.hotel %>% html_nodes(".bb_price_text") %>% html_text()
+price.given1 <- strsplit(price.given, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+}
+
+#METHOD 4 FOR CHCKING PRICE
+if (length(price.given1) == 0) {
+  price.given <- one.hotel %>% html_nodes(".lowestPriceFlagPresent .price") %>% html_text()
+price.given1 <- strsplit(price.given, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+}
+
+price.given1
+```
+
+In few cases none of the methods return the price. For those cases we will use the price obtained from the page's first instance from the price variable.
+
+```{r}
+#METHOD 5 FOR CHCKING PRICE
+if (length(price.given1) == 0) {
+  price.given1 <- price1
+}
+```
+
+Now in the next part, I try to find the actual price without any discount.
+This is used to calculate savings.
+In case if this is not available, then assigning price.given1 to it
+
+```{r}
+price.actual <- one.hotel %>% html_nodes(".xthrough_bad") %>% html_text()
+price.actual1 <- strsplit(price.actual, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+
+if (length(price.actual1) == 0) {
+  price.actual <- one.hotel %>% html_nodes(".xthrough") %>% html_text()
+price.actual1 <- strsplit(price.actual, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+}
+
+if (length(price.actual1) == 0) {
+price.actual1 <- price.given1
+}
+
+price.actual1
+```
+
+Variable 4 = Saving
+
+Subtracting actual price and the given price to obtain saving.
+
+```{r}
+#Function to extract only numeric part
+numextract <- function(string){ 
+  as.numeric( str_extract(string, "\\-*\\d+\\.*\\d*"))
+} 
+
+saving =numextract(  price.actual1) - numextract( price.given1)
+saving
+```
+
+Variable 5 = Obtaining number of reviews and rating of the hotels
+
+```{r}
+no.of.reviews <- one.hotel %>% html_nodes(".reviews_header_count") %>% html_text()
+if (length(no.of.reviews) == 0) {no.of.reviews <- "0"}
+no.of.reviews1 <- numextract(no.of.reviews)
+
+no.of.reviews1
+
+rating <- one.hotel %>% html_nodes(".overallRating") %>% html_text() %>% numextract()
+if (is.na(rating)) {rating <- 0}
+rating
+```
+
+Variable 6 = Facilities
+
+Obtaining all the Facilities and putting on the same string.
+
+```{r}
+facilities <- one.hotel %>% html_nodes(".detailListItem") %>% html_text()
+facilities
+
+fac = ""
+for (i in facilities){
+  fac = paste(fac, i, sep = ", ")
+}
+
+fac
+```
+
+Part 3: Creating a DF with all the data:
+
+```{r}
+this.hotel <- data.frame(Name = hotel.name
+                      ,URL = link
+                    ,Address = address
+                      ,Actual_price = price.actual1
+                      ,Offer_price = price.given1
+                      ,Saving = saving
+                      ,No_of_review = no.of.reviews1
+                      ,Average_rating = rating
+                      ,Facilities = fac)
+
+this.hotel
+```
+
+Part 4: Creating an empty dataframe for the details:
+
+```{r}
+hotel <- data.frame(Name = character()
+                      ,URL = character()
+                    ,Address = character()
+                      ,Actual_price = character()
+                      ,Offer_price = character()
+                      ,Saving = double()
+                      ,No_of_review = double()
+                      ,Average_rating = double()
+                      ,Facilities = character())
+```
+
+
+Part 5: Itterating all the URL's data over and over and appending to hotel dataframe:
+
+```{r}
+for (links in hotel.url){
+  one.hotel <- read_html(links)
+
+hotel.name <- one.hotel %>% html_nodes("#HEADING") %>% html_text()
+
+address <- one.hotel %>% html_nodes(".is-hidden-mobile.blEntry.address") %>% html_nodes(".detail") %>%  html_text() 
+address
+
+price <- one.hotel %>% html_nodes(".price") %>% html_text()
+if (length(price) > 0) {
+price1 <- strsplit(price, "\u20b9")[[1]]
+typeof(price1)
+}
+
+#METHOD 1 FOR CHCKING PRICE
+price.given <- one.hotel %>% html_nodes(".hasStrikeThrough .price") %>% html_text()
+price.given1 <- strsplit(price.given, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+
+#METHOD 2 FOR CHCKING PRICE
+if (length(price.given1) == 0) {
+  price.given <- one.hotel %>% html_nodes(".hasStrikeThrough") %>% html_text()
+price.given1 <- strsplit(price.given, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+}
+
+#METHOD 3 FOR CHCKING PRICE
+if (length(price.given1) == 0) {
+  price.given <- one.hotel %>% html_nodes(".bb_price_text") %>% html_text()
+price.given1 <- strsplit(price.given, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+}
+
+#METHOD 4 FOR CHCKING PRICE
+if (length(price.given1) == 0) {
+  price.given <- one.hotel %>% html_nodes(".lowestPriceFlagPresent .price") %>% html_text()
+price.given1 <- strsplit(price.given, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+}
+
+#METHOD 5 FOR CHCKING PRICE
+if (length(price.given1) == 0) {
+  price.given1 <- price1
+}
+
+price.actual <- one.hotel %>% html_nodes(".xthrough_bad") %>% html_text()
+price.actual1 <- strsplit(price.actual, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+
+if (length(price.actual1) == 0) {
+  price.actual <- one.hotel %>% html_nodes(".xthrough") %>% html_text()
+price.actual1 <- strsplit(price.actual, "\u20b9") %>% sapply("[[", 2) %>% str_replace_all("[[:punct:]]", "") %>% trimws(which = c("both"))
+}
+
+if (length(price.actual1) == 0) {
+price.actual1 <- price.given1
+}
+
+numextract <- function(string){ 
+  as.numeric( str_extract(string, "\\-*\\d+\\.*\\d*"))
+} 
+
+saving =numextract(  price.actual1) - numextract( price.given1)
+
+no.of.reviews <- one.hotel %>% html_nodes(".reviews_header_count") %>% html_text()
+if (length(no.of.reviews) == 0) {no.of.reviews <- "0"}
+no.of.reviews1 <- numextract(no.of.reviews)
+
+rating <- one.hotel %>% html_nodes(".overallRating") %>% html_text() %>% numextract()
+if (is.na(rating)) {rating <- 0}
+
+facilities <- one.hotel %>% html_nodes(".detailListItem") %>% html_text()
+facilities
+
+fac = ""
+for (i in facilities){
+  fac = paste(fac, i, sep = ", ")
+}
+
+fac
+
+this.hotel <- data.frame(Name = hotel.name
+                      ,URL = links
+                    ,Address = address
+                      ,Actual_price = price.actual1
+                      ,Offer_price = price.given1
+                      ,Saving = saving
+                      ,No_of_review = no.of.reviews1
+                      ,Average_rating = rating
+                      ,Facilities = fac)
+
+hotel<- rbind(hotel, this.hotel)
+}
+```
+
+Finally: Here is hotel DF with all the data:
+
+```{r}
+print(hotel)
+```
+
+
+Please provide your feedback!
+Thank you!
