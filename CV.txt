@@ -1,0 +1,79 @@
+<html>
+<head>
+</head>
+<body>
+<h1><center>CURRICULUM VITAE</center></h1>
+<img src="https://i.imgur.com/NNEdhN2.jpg' /" width="150" height="130" align= "right">
+<h2>VINEET KAPOOR</h2>
+Hno-B1/61  Sector 11 Faridabad<br>		
+Haryana - 121006<br>	
+M: +91 8860785265<br>
+vin725k@gmail.com
+
+<hr>
+<h2><center><u>SUMMARY</u></center></h2>
+<h3>Currently working as Data Analyst with TCS. 
+Work experience of 1+ years in the field of Exploratory Data Analysis, Statistical analysis 
+and Data visualization.</h3>
+<br></br>
+
+<style>
+table, th, td {
+    border: 2px solid black;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 5px;
+}
+</style>
+
+
+<h2><center><u>EDUCATION</u></center></h2>
+<table style="width:100%">
+  <tr>
+    <th>Year</th>
+    <th>Degree</th> 
+    <th>Institution</th>
+ <th>Specialization</th>
+<th>Percentage</th> 
+</tr>
+  <tr>
+    <td>2010-2014</td>
+    <td>B-Tech</td>
+    <td>YMCAUST, Faridabad, Haryana</td>
+<td>Electronics & Instrumentation</td>
+<td>67.9%</td>
+  </tr>
+  <tr>
+    <td>2009-2010</td>
+    <td>XII</td>
+    <td>MVN School, Faridabad</td>
+<td>Science</td>
+<td>87%  (CBSE)</td>
+  </tr>
+  <tr>
+    <td>2007-2008</td>
+    <td>X</td>
+    <td>MVN School, Faridabad</td>
+<td></td>
+<td>90% (CBSE)</td>
+  </tr>
+</table>
+<h2><center><u>PROFESSIONAL EXPERIENCE</u></center></h2>
+<div style="text-align:right"><h4><right>2014 – PRESENT</right></h4></div><br>
+<h3><b>TATA CONSULTANCY SERVICES </b>, NOIDA </h3>
+<h3>DATA ANALYST</h3>
+<h3 style="color:DodgerBlue;"><b><i>Project Name: Data Analysis for an Aviation company - For US Client.</i></b></h3>
+<h3><b><i>Technology</i></b>:  Excel 2016, R Studio, R Markdown, Shiny package<h3>
+<h3><i><b>Project Abstract</i></b>:  The project includes the whole cycle of Data Science from Business requirements to <br>providing solutions. It includes technical knowledge, business knowledge and programming skills. It is related to<br> an Aviation company, in which high-volume, high-dimensionality data from varying sources is used to build <br> correlations, establish causality – and search for cues that can improve business outcomes. <h3>
+<h3><b><i>Role:         Technical</i></b></h3>
+<h3>
+<ul>
+<li>Responsible for identifying root causes and recommend solutions</li>
+<li>Use exploratory data analysis techniques to identify meaningful relationships, patterns, or trends from complex data sets.</li>
+<li>Design experiments to test the validity of hypotheses.</li>
+<li>Develop presentations reports and dashboards to communicate to internal stakeholders</li>
+<ul>
+</h3>
+</body>
+</html>
