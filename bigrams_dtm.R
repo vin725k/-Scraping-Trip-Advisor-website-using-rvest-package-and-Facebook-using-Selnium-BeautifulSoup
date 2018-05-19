@@ -1,4 +1,4 @@
-text_bigrams = function(txt)
+text_big = function(txt)
 {
   
   require(stringr)
